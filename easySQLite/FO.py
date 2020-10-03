@@ -160,7 +160,7 @@ class SQLiteConnect:
 
 
     
-    # print data of a particular key
+    # print entire data in a table
     def printData(self , errorMessage = "No data in table"):
 
         string = "SELECT "
@@ -190,6 +190,74 @@ class SQLiteConnect:
             print(tabulate(table, headers=self.colNames))
         else:
             print(errorMessage)
+
+
+
+    # return data of a particular key
+    # returns none if not found
+    def returnDataOfKey(self, key):
+
+        string = "SELECT "
+
+        for i in self.colNames:
+            string = string + i + ","
+        
+        string = string[:-1] + " from " + self.tableName
+
+        cursor = self.connObj.execute(string)
+
+        table = []
+
+        for row in cursor:
+            tempTable = []
+            
+            if(int(row[0] == key)):
+                count = 0
+                for i in self.colNames:
+                    tempTable.append(row[count])
+                    count += 1
+        
+            table.append(tempTable)
+
+        if(len(table) > 0):
+            return table
+        else:
+            return None
+
+
+    
+    # return entire data in a table
+    # returns None if no data is present
+    def returnData(self):
+
+        string = "SELECT "
+
+        for i in self.colNames:
+            string = string + i + ","
+        
+        string = string[:-1] + " from " + self.tableName
+
+        cursor = self.connObj.execute(string)
+
+        table = []
+
+        for row in cursor:
+            tempTable = []
+        
+            count = 0
+            for i in self.colNames:
+                tempTable.append(row[count])
+                count += 1
+        
+            table.append(tempTable)
+
+        if(len(table) > 0):
+            return table
+        else:
+            return None
+
+
+# TODO : print the data of a particular COL
 
 
 
