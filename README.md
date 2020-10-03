@@ -1,5 +1,7 @@
-# Easy File Operations Module
+# Easy SQLite Module
 
-This module to used to quickly add file operations functionality like copying , moving , deleting , various os file operation function to your module
+This module is handle the database related operations with ease 
+
+Also provides encryption to the data base
 
 # Currently under development
