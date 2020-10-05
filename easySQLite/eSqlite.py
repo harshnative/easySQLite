@@ -349,7 +349,7 @@ class SQLiteConnect:
                 count = count + 1
 
 
-
+    # function to upadte the entire row corresponding to a key
     def updateEntireRow(self , valuesList , key):
 
         key = int(key)
@@ -366,7 +366,7 @@ class SQLiteConnect:
 
 
 
-
+# for testing purpose
 if __name__ == "__main__":
     
     obj = SQLiteConnect()
