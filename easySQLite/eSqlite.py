@@ -33,6 +33,7 @@ class SQLiteConnect:
         self.objSecurity.setSecurityLevel_toLow()
         self.connObj = None
         self.colNames = []
+        self.colList = []
         self.tableName = None
 
     
@@ -65,6 +66,8 @@ class SQLiteConnect:
         string = string + "ID INT PRIMARY KEY     NOT NULL,"
         self.colNames.append("ID")
 
+        self.colList.clear()
+
         for i in contentList:
             
             string = string + str(i[0]) + "    "
@@ -73,10 +76,13 @@ class SQLiteConnect:
 
             if(i[1] == "INT"):
                 string = string + "INT" + "    "
+                self.colList.append([str(i[0]) , "INT"])
             elif(i[1] == "REAL"):
                 string = string + "REAL" + "    "
+                self.colList.append([str(i[0]) , "REAL"])
             else:
                 string = string + "TEXT" + "    "
+                self.colList.append([str(i[0]) , "TEXT"])
 
             try:
                 if(int(i[2]) == 1):
@@ -101,15 +107,19 @@ class SQLiteConnect:
         
     
     # fucntion to insert data into table
-    def insertIntoTable(self, valuesList):
+    def insertIntoTable(self, valuesList , keyPass = None):
 
-        key = self.returnLastKey() 
+        if(keyPass == None):
+            key = self.returnLastKey() 
 
-        if(key == None):
-            key = 0
+            if(key == None):
+                key = 0
+
+            else:
+                key = key + 1
 
         else:
-            key = key + 1
+            key = int(keyPass)
 
         string = "INSERT INTO " + self.tableName + " ("
         
@@ -118,10 +128,18 @@ class SQLiteConnect:
 
         string = string[:-1] + " ) VALUES (" + str(key) + ","
 
+        tempCount = 0
+
         for i in valuesList:
-            string = string + "'" + i + "'" + ","
+            if((self.colList[tempCount][1] == "INT") or (self.colList[tempCount] == "REAL")):
+                string = string + str(i) + ","
+            else:
+                string = string + "'" + i + "'" + ","
+
+            tempCount += 1
 
         string = string[:-1] + " )"
+
 
         self.connObj.execute(string)
         self.connObj.commit()
@@ -280,9 +298,16 @@ class SQLiteConnect:
 
 
     # function for updating a col data in row
-    def updateRow(self , toUpdate , value , key , valueIsText = True):
+    def updateRow(self , toUpdate , value , key):
 
         string = "UPDATE " + self.tableName + " set " + str(toUpdate) + " = "
+
+        valueIsText = False
+
+        for i in self.colList:
+            if(str(i[0]) == str(toUpdate)):
+                if(str(i[1]) == "TEXT"):
+                    valueIsText = True
 
         if(valueIsText):
             string = string + "'" + value + "' "
@@ -319,9 +344,22 @@ class SQLiteConnect:
                 if(int(row[0]) == count):
                     pass
                 else:
-                    self.updateRow("ID" , count , row[0] , False)
+                    self.updateRow("ID" , count , row[0])
                 
                 count = count + 1
+
+
+
+    def updateEntireRow(self , valuesList , key):
+
+        key = int(key)
+
+        count = 1
+
+        for i in valuesList:
+            self.updateRow(self.colNames[count] , i , key)
+            count = count + 1 
+
 
     
 
@@ -335,27 +373,27 @@ if __name__ == "__main__":
 
     obj.setDatabase("test.db")
 
-    contentList = [["test1" , "TEXT" , 1] , ["test2" , "TEXT" , 1]]
+    contentList = [["test1" , "TEXT" , 1] , ["test2" , "TEXT" , 1] , ["test3" , "INT" , 1]]
 
     obj.setTable("testTable" , contentList)
 
-    valuesList = ["hello" , "world"]
+    valuesList = ["hello" , "world" , 123]
 
     obj.insertIntoTable(valuesList)
 
-    valuesList = ["hello1" , "world1"]
+    valuesList = ["hello1" , "world1" , 456]
 
     obj.insertIntoTable(valuesList)
 
-    valuesList = ["hello3" , "world3"]
+    valuesList = ["hello3" , "world3" , 789]
 
     obj.insertIntoTable(valuesList)
 
-    valuesList = ["hello4" , "world4"]
+    valuesList = ["hello4" , "world4" , 1234]
 
     obj.insertIntoTable(valuesList)
 
-    valuesList = ["hello5" , "world45"]
+    valuesList = ["hello5" , "world45" , 5678]
 
     obj.insertIntoTable(valuesList)
 
@@ -371,7 +409,7 @@ if __name__ == "__main__":
     print("\n\n")
     obj.printData()
 
-    valuesList = ["hello55" , "world455"]
+    valuesList = ["hello55" , "world455" , 91234]
 
     obj.insertIntoTable(valuesList)
 
@@ -379,6 +417,12 @@ if __name__ == "__main__":
     obj.printData()
 
     obj.deleteRow(4 , True)
+
+    print("\n\n")
+    obj.printData()
+
+    valuesList = ["hello555" , "world4555" , 456789]
+    obj.updateEntireRow(valuesList , 2)
 
     print("\n\n")
     obj.printData()
