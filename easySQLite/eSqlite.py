@@ -2,6 +2,29 @@ import SED
 import sqlite3 as sq
 from tabulate import tabulate
 
+
+class eSQLiteGlobalMethods:
+
+    @classmethod
+    def isSubString(cls , string, subString):
+        string = str(string)
+        subString = str(subString)
+
+        lengthOfSubString = len(subString)
+        try:
+            for i, j in enumerate(string):
+                if(j == subString[0]):
+                    if(subString == string[i:i+lengthOfSubString]):
+                        return True
+                    else:
+                        pass
+            return False
+        except Exception:
+            return False
+
+
+
+
 class SQLiteConnect:
 
     def __init__(self):
@@ -99,8 +122,6 @@ class SQLiteConnect:
             string = string + "'" + i + "'" + ","
 
         string = string[:-1] + " )"
-
-        print(string)
 
         self.connObj.execute(string)
         self.connObj.commit()
@@ -257,7 +278,54 @@ class SQLiteConnect:
             return None
 
 
-# TODO : print the data of a particular COL
+
+    # function for updating a col data in row
+    def updateRow(self , toUpdate , value , key , valueIsText = True):
+
+        string = "UPDATE " + self.tableName + " set " + str(toUpdate) + " = "
+
+        if(valueIsText):
+            string = string + "'" + value + "' "
+        else:
+            string = string + str(value) + " "
+
+        string = string + "where ID = " + str(key)
+
+        self.connObj.execute(string)
+        self.connObj.commit()
+
+
+    # function for deleting a row
+    def deleteRow(self, key , updateId = False):
+
+        string = "DELETE from " + self.tableName + " where ID = " + str(key) + ";"
+
+        self.connObj.execute(string)
+        self.connObj.commit()
+
+        if(updateId):
+            string = "SELECT "
+
+            for i in self.colNames:
+                string = string + i + ","
+            
+            string = string[:-1] + " from " + self.tableName
+
+            cursor = self.connObj.execute(string)
+
+            count = 0
+
+            for row in cursor:
+                if(int(row[0]) == count):
+                    pass
+                else:
+                    self.updateRow("ID" , count , row[0] , False)
+                
+                count = count + 1
+
+    
+
+
 
 
 
@@ -275,8 +343,47 @@ if __name__ == "__main__":
 
     obj.insertIntoTable(valuesList)
 
+    valuesList = ["hello1" , "world1"]
+
+    obj.insertIntoTable(valuesList)
+
+    valuesList = ["hello3" , "world3"]
+
+    obj.insertIntoTable(valuesList)
+
+    valuesList = ["hello4" , "world4"]
+
+    obj.insertIntoTable(valuesList)
+
+    valuesList = ["hello5" , "world45"]
+
+    obj.insertIntoTable(valuesList)
+
     obj.printData()
 
+    obj.updateRow("test1" , "hello69" , 3)
+
+    print("\n\n")
+    obj.printData()
+
+    obj.deleteRow(2)
+
+    print("\n\n")
+    obj.printData()
+
+    valuesList = ["hello55" , "world455"]
+
+    obj.insertIntoTable(valuesList)
+
+    print("\n\n")
+    obj.printData()
+
+    obj.deleteRow(4 , True)
+
+    print("\n\n")
+    obj.printData()
+
+    
         
 
 
