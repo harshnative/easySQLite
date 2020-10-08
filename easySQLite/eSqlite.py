@@ -42,6 +42,16 @@ class SQLiteConnect:
         self.objSecurity.setPassword_Pin_keySalt(password , pin , keysalt)
         self.security = True
 
+        contentList = [["PASS" , "TEXT" , 1]]
+        table = self.tableName
+        self.setTable("letscodeofficial.com" , contentList , raiseException)
+        valuesList = []
+        valuesList.append(self.objSecurity.returnEncryptedPassword(password))
+        self.insertIntoTable(valuesList)
+        self.tableName = table
+
+
+
 
     # function to set a own salt list for easySED module
     def setSaltList(self , saltList_containingSixStrings):
