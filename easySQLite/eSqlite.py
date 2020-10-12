@@ -1,10 +1,13 @@
+# import easySQLite.SED as SED
 import SED
 import sqlite3 as sq
 from tabulate import tabulate
 
 
+# some of the global methods that will not be accesed by normal user of this module
 class eSQLiteGlobalMethods:
 
+    # function to tell if the string has the passed subString
     @classmethod
     def isSubString(cls , string, subString):
         string = str(string)
@@ -25,6 +28,8 @@ class eSQLiteGlobalMethods:
 
 
 
+
+# main class
 class SQLiteConnect:
 
     def __init__(self):
@@ -34,14 +39,40 @@ class SQLiteConnect:
         self.connObj = None
         self.dataBaseName = None
 
+        self.passwordStorerTable = "password storer table , 0b242ba11ab4a144a48cd25e88b98d161a7ba1c68ad65646cb9207f66aee1a64"
+
         self.colNames = []
         self.colList = []
         self.tableName = None
 
     
     # function to enable to database encryption and to set password as well
-    # def setPassword(self , password , pin = 123456 , keysalt = "easySQLite"):
-    #     self.objSecurity.setPassword_Pin_keySalt(password , pin , keysalt)
+    def setPassword(self , password , pin = 123456):
+
+        self.objSecurity.setPassword_Pin(password , pin)
+
+        tempTableName = self.tableName 
+
+        contentList = [["PASS" , "TEXT" , 1]]
+
+        try:
+            self.createTable(self.passwordStorerTable , contentList , True)
+            valuesList = [self.objSecurity.returnPassForStoring()]
+            self.insertIntoTable(valuesList)
+            self.tableName = tempTableName
+            return
+
+        except Exception:
+            data = self.returnDataOfKey(0 , self.passwordStorerTable)
+            data = data[0]
+            data = data[1]
+
+            if(self.objSecurity.authenticatePassword(data , password , pin)):
+                return True
+            else:
+                return False
+
+
     #     self.security = True
 
     #     contentList = [["PASS" , "TEXT" , 1]]
@@ -73,7 +104,7 @@ class SQLiteConnect:
     def createTable(self, tableName , contentList , raiseException = False):
         
         self.tableName = str(tableName)
-        string = "CREATE TABLE " + self.tableName + " ("
+        string = "CREATE TABLE " + "'" + self.tableName + "'" + " ("
 
         self.colNames.clear()
 
@@ -141,7 +172,7 @@ class SQLiteConnect:
         else:
             key = int(keyPass)
 
-        string = "INSERT INTO " + tableName + " ("
+        string = "INSERT INTO " + "'" + tableName + "'" + " ("
         
         for i in  self.colNames:
             string = string + i + ","
@@ -175,7 +206,7 @@ class SQLiteConnect:
         for i in self.colNames:
             string = string + i + ","
         
-        string = string[:-1] + " from " + self.tableName
+        string = string[:-1] + " from " + "'" + self.tableName + "'"
 
         cursor = self.connObj.execute(string)
 
@@ -194,7 +225,7 @@ class SQLiteConnect:
             else:
                 tableName = self.tableName
 
-        cursor = self.connObj.execute('select * from ' + tableName)
+        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
 
         colList = list(map(lambda x: x[0], cursor.description))
 
@@ -229,7 +260,7 @@ class SQLiteConnect:
             else:
                 tableName = self.tableName
 
-        cursor = self.connObj.execute('select * from ' + tableName)
+        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
 
         colList = list(map(lambda x: x[0], cursor.description))
 
@@ -264,7 +295,7 @@ class SQLiteConnect:
             else:
                 tableName = self.tableName
 
-        cursor = self.connObj.execute('select * from ' + tableName)
+        cursor = self.connObj.execute('select * from ' + "'" +  tableName + "'")
 
         table = []
 
@@ -296,7 +327,7 @@ class SQLiteConnect:
             else:
                 tableName = self.tableName
 
-        cursor = self.connObj.execute('select * from ' + tableName)
+        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
 
         colList = list(map(lambda x: x[0], cursor.description))
 
@@ -332,7 +363,7 @@ class SQLiteConnect:
 
         string = "UPDATE " + tableName + " set " + str(colName) + " = "
 
-        cor = self.connObj.execute("PRAGMA table_info(" + tableName + ")")
+        cor = self.connObj.execute("PRAGMA table_info(" + "'" + tableName + "'" + ")")
 
         valueIsText = False
 
@@ -361,7 +392,7 @@ class SQLiteConnect:
             else:
                 tableName = self.tableName
 
-        string = "DELETE from " + tableName + " where ID = " + str(key) + ";"
+        string = "DELETE from " + "'" + tableName + "'" + " where ID = " + str(key) + ";"
 
         self.connObj.execute(string)
         self.connObj.commit()
@@ -372,7 +403,7 @@ class SQLiteConnect:
             for i in self.colNames:
                 string = string + i + ","
             
-            string = string[:-1] + " from " + self.tableName
+            string = string[:-1] + " from " + "'" + tableName + "'"
 
             cursor = self.connObj.execute(string)
 
@@ -400,7 +431,7 @@ class SQLiteConnect:
 
         count = 1
 
-        cursor = self.connObj.execute('select * from ' + tableName)
+        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
 
         colList = list(map(lambda x: x[0], cursor.description))
 
@@ -421,62 +452,70 @@ if __name__ == "__main__":
 
     obj.setDatabase("test.db")
 
-    contentList = [["test1" , "TEXT" , 1] , ["test2" , "TEXT" , 1] , ["test3" , "INT" , 1]]
+    # contentList = [["test1" , "TEXT" , 1] , ["test2" , "TEXT" , 1] , ["test3" , "INT" , 1]]
 
-    obj.createTable("testTable" , contentList)
+    # obj.createTable("testTable" , contentList)
 
-    valuesList = ["hello" , "world" , 123]
+    # valuesList = ["hello" , "world" , 123]
 
-    obj.insertIntoTable(valuesList)
+    # obj.insertIntoTable(valuesList)
 
-    valuesList = ["hello1" , "world1" , 456]
+    # valuesList = ["hello1" , "world1" , 456]
 
-    obj.insertIntoTable(valuesList)
+    # obj.insertIntoTable(valuesList)
 
-    valuesList = ["hello3" , "world3" , 789]
+    # valuesList = ["hello3" , "world3" , 789]
 
-    obj.insertIntoTable(valuesList)
+    # obj.insertIntoTable(valuesList)
 
-    valuesList = ["hello4" , "world4" , 1234]
+    # valuesList = ["hello4" , "world4" , 1234]
 
-    obj.insertIntoTable(valuesList)
+    # obj.insertIntoTable(valuesList)
 
-    valuesList = ["hello5" , "world45" , 5678]
+    # valuesList = ["hello5" , "world45" , 5678]
 
-    obj.insertIntoTable(valuesList)
+    # obj.insertIntoTable(valuesList)
 
-    obj.printData()
+    # obj.printData()
 
-    obj.updateRow("test1" , "hello69" , 3)
+    # obj.updateRow("test1" , "hello69" , 3)
 
-    print("\n\n")
-    obj.printData()
+    # print("\n\n")
+    # obj.printData()
 
-    obj.deleteRow(2)
+    # obj.deleteRow(2)
 
-    print("\n\n")
-    obj.printData()
+    # print("\n\n")
+    # obj.printData()
 
-    valuesList = ["hello55" , "world455" , 91234]
+    # valuesList = ["hello55" , "world455" , 91234]
 
-    obj.insertIntoTable(valuesList)
+    # obj.insertIntoTable(valuesList)
 
-    print("\n\n")
-    obj.printData()
+    # print("\n\n")
+    # obj.printData()
 
-    obj.deleteRow(4 , True)
+    # obj.deleteRow(4 , True)
 
-    print("\n\n")
-    obj.printData()
+    # print("\n\n")
+    # obj.printData()
 
-    valuesList = ["hello555" , "world4555" , 456789]
-    obj.updateEntireRow(valuesList , 2)
+    # valuesList = ["hello555" , "world4555" , 456789]
+    # obj.updateEntireRow(valuesList , 2)
 
-    print("\n\n")
-    obj.printData()
+    # print("\n\n")
+    # obj.printData()
 
     
-        
+    
+
+
+
+
+
+    # TODO: testing password
+
+    print(obj.setPassword("hello boi"))
 
 
         
