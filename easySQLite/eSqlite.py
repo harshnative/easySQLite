@@ -33,29 +33,42 @@ class eSQLiteGlobalMethods:
 class SQLiteConnect:
 
     def __init__(self):
+
+        # to tell if the security is on in data base or not
         self.security = False
+
+        # object for the SED module
         self.objSecurity = SED.ED()
 
+        # connObj to the data base
         self.connObj = None
+
+        # dataBase name
         self.dataBaseName = None
 
+        # name of the password storing table
         self.passwordStorerTable = "password storer table , 0b242ba11ab4a144a48cd25e88b98d161a7ba1c68ad65646cb9207f66aee1a64"
 
-        self.colNames = []
-        self.colList = []
+        # table name which the module is currently working on
         self.tableName = None
 
     
     # function to enable to database encryption and to set password as well
     def setPassword(self , password , pin = 123456):
+        """return None if the password not present in table before (first time use)
+        return True if the password and pin are setted correctly
+        return False if the authentication failed"""
 
         self.objSecurity.setPassword_Pin(password , pin)
 
+        # storing the current table name to restore it later
         tempTableName = self.tableName 
 
+        # content list for generating the password table
         contentList = [["PASS" , "TEXT" , 1]]
 
         try:
+            # exception will be raised if the table already exist or some problem occur
             self.createTable(self.passwordStorerTable , contentList , True)
             valuesList = [self.objSecurity.returnPassForStoring()]
             self.insertIntoTable(valuesList)
@@ -63,6 +76,8 @@ class SQLiteConnect:
             return
 
         except Exception:
+
+            # getting the current password stored in table
             data = self.returnDataOfKey(0 , self.passwordStorerTable)
             data = data[0]
             data = data[1]
@@ -73,18 +88,9 @@ class SQLiteConnect:
                 return False
 
 
-    #     self.security = True
-
-    #     contentList = [["PASS" , "TEXT" , 1]]
-    #     table = self.tableName
-    #     self.createTable("letscodeofficial.com" , contentList , raiseException)
-    #     valuesList = []
-    #     valuesList.append(self.objSecurity.returnEncryptedPassword(password))
-    #     self.insertIntoTable(valuesList)
-    #     self.tableName = table
-
-
-
+    # function for toggling the security status
+    def setSecurityStatus(self , status = True):
+        self.security = status
 
     
     # function to set the database name
@@ -97,37 +103,36 @@ class SQLiteConnect:
     def getDatabase(self):
         return self.dataBaseName
 
-
-    # table parameters - 
-    # data types - INT TEXT REAL
-    # content List = [ [nameOfCol , dataBaseType , 0 for NULL or 1 for not NULL] , similar more objects ]
+    # function to create the table
     def createTable(self, tableName , contentList , raiseException = False):
+        """table parameters - 
+        data types - INT TEXT REAL
+        content List = [ [nameOfCol , dataBaseType , 0 for NULL or 1 for not NULL] , similar more objects ]
         
+        raise exception is False so that if the table already exist it does not raise any exception
+    
+        but if you think their is some other problem then you make this true to see what is causing he problem"""
+        
+        # storing teh table name for further use
         self.tableName = str(tableName)
+
+        # generating the query string
         string = "CREATE TABLE " + "'" + self.tableName + "'" + " ("
 
-        self.colNames.clear()
-
+        # adding ID
         string = string + "ID INT PRIMARY KEY     NOT NULL,"
-        self.colNames.append("ID")
 
-        self.colList.clear()
-
+        # adding rest of the content list
         for i in contentList:
             
             string = string + str(i[0]) + "    "
 
-            self.colNames.append(str(i[0]))
-
             if(i[1] == "INT"):
                 string = string + "INT" + "    "
-                self.colList.append([str(i[0]) , "INT"])
             elif(i[1] == "REAL"):
                 string = string + "REAL" + "    "
-                self.colList.append([str(i[0]) , "REAL"])
             else:
                 string = string + "TEXT" + "    "
-                self.colList.append([str(i[0]) , "TEXT"])
 
             try:
                 if(int(i[2]) == 1):
@@ -151,15 +156,17 @@ class SQLiteConnect:
 
         
     
-    # fucntion to insert data into table
+    # function to insert data into table
     def insertIntoTable(self, valuesList , keyPass = None , tableName = None):
 
+        # checking the module as some stored table name or not
         if(tableName == None):
             if(self.tableName == None):
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
 
+        # getting the key value if not passed
         if(keyPass == None):
             key = self.returnLastKey() 
 
@@ -172,17 +179,36 @@ class SQLiteConnect:
         else:
             key = int(keyPass)
 
+        # generating query string
         string = "INSERT INTO " + "'" + tableName + "'" + " ("
+
+        # column list in the table
+        colList = []
+
+        # datatypes of the cols in the table
+        dataTypeList = []
+
+        # getting the table info
+        cor = self.connObj.execute("PRAGMA table_info(" + "'" + tableName + "'" + ")")
+
+        # generating col list and datatype list
+        for i in cor:
+            colList.append(i[1])
+            dataTypeList.append(i[2])
         
-        for i in  self.colNames:
+        # adding cols to query
+        for i in  colList:
             string = string + i + ","
 
         string = string[:-1] + " ) VALUES (" + str(key) + ","
 
-        tempCount = 0
-
+        tempCount = 1
+        
+        # adding values to query
         for i in valuesList:
-            if((self.colList[tempCount][1] == "INT") or (self.colList[tempCount] == "REAL")):
+            
+            # checking the col data is of INT or REAL
+            if((dataTypeList[tempCount] == "INT") or (dataTypeList[tempCount] == "REAL")):
                 string = string + str(i) + ","
             else:
                 string = string + "'" + i + "'" + ","
@@ -197,19 +223,33 @@ class SQLiteConnect:
 
 
     # function to return the last ID
-    def returnLastKey(self):
+    def returnLastKey(self , tableName = None):
 
+        # checking if their is stored table in module or not 
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
+
+        # generating query string
         string = "SELECT "
+
+        # getting the col names list
+        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
+        colList = list(map(lambda x: x[0], cursor.description))
 
         id = None
 
-        for i in self.colNames:
+        # adding cols to query
+        for i in colList:
             string = string + i + ","
         
-        string = string[:-1] + " from " + "'" + self.tableName + "'"
+        string = string[:-1] + " from " + "'" + tableName + "'"
 
         cursor = self.connObj.execute(string)
 
+        # prasing the table and finding last key
         for row in cursor:
             id = int(row[0])
 
@@ -219,14 +259,15 @@ class SQLiteConnect:
     # print data of a particular key
     def printDataOfKey(self, key , errorMessage = "key could not be found" , tableName = None):
 
+        # checking whether their is stored table name is module
         if(tableName == None):
             if(self.tableName == None):
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
 
+        # getting the col list
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
-
         colList = list(map(lambda x: x[0], cursor.description))
 
         table = []
@@ -237,7 +278,9 @@ class SQLiteConnect:
             
             if(int(row[0] == key)):
                 count = 0
-                for i in self.colNames:
+
+                # adding all the cols data
+                for _ in colList:
                     tempTable.append(row[count])
                     count += 1
                 found = True
@@ -254,14 +297,15 @@ class SQLiteConnect:
     # print entire data in a table
     def printData(self , errorMessage = "No data in table" , tableName = None):
 
+        # checking if their is stored table name is module 
         if(tableName == None):
             if(self.tableName == None):
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
 
+        # getting the col list
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
-
         colList = list(map(lambda x: x[0], cursor.description))
 
         table = []
@@ -271,7 +315,9 @@ class SQLiteConnect:
             tempTable = []
         
             count = 0
-            for i in self.colNames:
+
+            # getting all col data
+            for _ in colList:
                 tempTable.append(row[count])
                 count += 1
             found = True
@@ -289,13 +335,16 @@ class SQLiteConnect:
     # returns none if not found
     def returnDataOfKey(self, key , tableName = None):
 
+        # checking for stored table name
         if(tableName == None):
             if(self.tableName == None):
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
 
+        # getting col list
         cursor = self.connObj.execute('select * from ' + "'" +  tableName + "'")
+        colList = list(map(lambda x: x[0], cursor.description))
 
         table = []
 
@@ -304,7 +353,9 @@ class SQLiteConnect:
             
             if(int(row[0] == key)):
                 count = 0
-                for i in self.colNames:
+                
+                # getting all cols data
+                for _ in colList:
                     tempTable.append(row[count])
                     count += 1
         
@@ -319,16 +370,18 @@ class SQLiteConnect:
     
     # return entire data in a table
     # returns None if no data is present
+    # i[1] of this list is the list of col names 
     def returnData(self , tableName = None):
 
+        # checking for stored table name
         if(tableName == None):
             if(self.tableName == None):
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
 
+        # getting col list
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
-
         colList = list(map(lambda x: x[0], cursor.description))
 
         table = []
@@ -339,7 +392,9 @@ class SQLiteConnect:
             tempTable = []
         
             count = 0
-            for i in self.colNames:
+
+            # getting all col data
+            for _ in colList:
                 tempTable.append(row[count])
                 count += 1
         
@@ -352,19 +407,25 @@ class SQLiteConnect:
 
 
 
-    # function for updating a col data in row
+    # function for updating a col data in row of particular key
+    # returns True if key was found and operation was sucessful
+    # return False else wise
     def updateRow(self , colName , value , key , tableName = None):
 
+        # checking for stored table name
         if(tableName == None):
             if(self.tableName == None):
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
 
+        # query string
         string = "UPDATE " + tableName + " set " + str(colName) + " = "
 
+        # gettign table info 
         cor = self.connObj.execute("PRAGMA table_info(" + "'" + tableName + "'" + ")")
 
+        # finding if the value to be updated is text or not
         valueIsText = False
 
         for i in cor:
@@ -386,21 +447,29 @@ class SQLiteConnect:
     # function for deleting a row
     def deleteRow(self, key , updateId = False , tableName = None):
 
+        # checking for stored table name
         if(tableName == None):
             if(self.tableName == None):
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
 
+        # query
         string = "DELETE from " + "'" + tableName + "'" + " where ID = " + str(key) + ";"
+
+        # getting col list 
+        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
+        colList = list(map(lambda x: x[0], cursor.description))
+
 
         self.connObj.execute(string)
         self.connObj.commit()
 
+        # updating the ids
         if(updateId):
             string = "SELECT "
 
-            for i in self.colNames:
+            for i in colList:
                 string = string + i + ","
             
             string = string[:-1] + " from " + "'" + tableName + "'"
@@ -421,6 +490,7 @@ class SQLiteConnect:
     # function to upadte the entire row corresponding to a key
     def updateEntireRow(self , valuesList , key , tableName = None):
 
+        # checking for stored table name 
         if(tableName == None):
             if(self.tableName == None):
                 raise Exception("either pass a table name or create that table using createTable function")
@@ -431,8 +501,8 @@ class SQLiteConnect:
 
         count = 1
 
+        # getting col list
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
-
         colList = list(map(lambda x: x[0], cursor.description))
 
         for i in valuesList:
@@ -452,59 +522,59 @@ if __name__ == "__main__":
 
     obj.setDatabase("test.db")
 
-    # contentList = [["test1" , "TEXT" , 1] , ["test2" , "TEXT" , 1] , ["test3" , "INT" , 1]]
+    contentList = [["test1" , "TEXT" , 1] , ["test2" , "TEXT" , 1] , ["test3" , "INT" , 1]]
 
-    # obj.createTable("testTable" , contentList)
+    obj.createTable("testTable" , contentList)
 
-    # valuesList = ["hello" , "world" , 123]
+    valuesList = ["hello" , "world" , 123]
 
-    # obj.insertIntoTable(valuesList)
+    obj.insertIntoTable(valuesList)
 
-    # valuesList = ["hello1" , "world1" , 456]
+    valuesList = ["hello1" , "world1" , 456]
 
-    # obj.insertIntoTable(valuesList)
+    obj.insertIntoTable(valuesList)
 
-    # valuesList = ["hello3" , "world3" , 789]
+    valuesList = ["hello3" , "world3" , 789]
 
-    # obj.insertIntoTable(valuesList)
+    obj.insertIntoTable(valuesList)
 
-    # valuesList = ["hello4" , "world4" , 1234]
+    valuesList = ["hello4" , "world4" , 1234]
 
-    # obj.insertIntoTable(valuesList)
+    obj.insertIntoTable(valuesList)
 
-    # valuesList = ["hello5" , "world45" , 5678]
+    valuesList = ["hello5" , "world45" , 5678]
 
-    # obj.insertIntoTable(valuesList)
+    obj.insertIntoTable(valuesList)
 
-    # obj.printData()
+    obj.printData()
 
-    # obj.updateRow("test1" , "hello69" , 3)
+    obj.updateRow("test1" , "hello69" , 3)
 
-    # print("\n\n")
-    # obj.printData()
+    print("\n\n")
+    obj.printData()
 
-    # obj.deleteRow(2)
+    obj.deleteRow(2)
 
-    # print("\n\n")
-    # obj.printData()
+    print("\n\n")
+    obj.printData()
 
-    # valuesList = ["hello55" , "world455" , 91234]
+    valuesList = ["hello55" , "world455" , 91234]
 
-    # obj.insertIntoTable(valuesList)
+    obj.insertIntoTable(valuesList)
 
-    # print("\n\n")
-    # obj.printData()
+    print("\n\n")
+    obj.printData()
 
-    # obj.deleteRow(4 , True)
+    obj.deleteRow(4 , True)
 
-    # print("\n\n")
-    # obj.printData()
+    print("\n\n")
+    obj.printData()
 
-    # valuesList = ["hello555" , "world4555" , 456789]
-    # obj.updateEntireRow(valuesList , 2)
+    valuesList = ["hello555" , "world4555" , 456789]
+    obj.updateEntireRow(valuesList , 2)
 
-    # print("\n\n")
-    # obj.printData()
+    print("\n\n")
+    obj.printData()
 
     
     
@@ -515,7 +585,7 @@ if __name__ == "__main__":
 
     # TODO: testing password
 
-    print(obj.setPassword("hello boi"))
+    # print(obj.setPassword("hello boi"))
 
 
         
@@ -539,3 +609,10 @@ if __name__ == "__main__":
 
 
 
+
+
+
+# TODO: make the table delete function as well
+# make the db delete fucntion as well 
+# make the tabulate built in
+# seperate function for update ID
