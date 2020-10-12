@@ -30,7 +30,10 @@ class SQLiteConnect:
     def __init__(self):
         self.security = False
         self.objSecurity = SED.ED()
+
         self.connObj = None
+        self.dataBaseName = None
+
         self.colNames = []
         self.colList = []
         self.tableName = None
@@ -43,7 +46,7 @@ class SQLiteConnect:
 
     #     contentList = [["PASS" , "TEXT" , 1]]
     #     table = self.tableName
-    #     self.setTable("letscodeofficial.com" , contentList , raiseException)
+    #     self.createTable("letscodeofficial.com" , contentList , raiseException)
     #     valuesList = []
     #     valuesList.append(self.objSecurity.returnEncryptedPassword(password))
     #     self.insertIntoTable(valuesList)
@@ -52,20 +55,22 @@ class SQLiteConnect:
 
 
 
-    # function to set a own salt list for easySED module
-    def setSaltList(self , saltList_containingSixStrings):
-        self.objSecurity.setOwnSaltList(saltList_containingSixStrings)
-
     
     # function to set the database name
     def setDatabase(self, dataBaseName):
         self.connObj = sq.connect(dataBaseName)
+        self.dataBaseName = dataBaseName
+
+    
+    # function to get the database name
+    def getDatabase(self):
+        return self.dataBaseName
 
 
     # table parameters - 
     # data types - INT TEXT REAL
     # content List = [ [nameOfCol , dataBaseType , 0 for NULL or 1 for not NULL] , similar more objects ]
-    def setTable(self, tableName , contentList , raiseException = False):
+    def createTable(self, tableName , contentList , raiseException = False):
         
         self.tableName = str(tableName)
         string = "CREATE TABLE " + self.tableName + " ("
@@ -116,7 +121,13 @@ class SQLiteConnect:
         
     
     # fucntion to insert data into table
-    def insertIntoTable(self, valuesList , keyPass = None):
+    def insertIntoTable(self, valuesList , keyPass = None , tableName = None):
+
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
 
         if(keyPass == None):
             key = self.returnLastKey() 
@@ -130,7 +141,7 @@ class SQLiteConnect:
         else:
             key = int(keyPass)
 
-        string = "INSERT INTO " + self.tableName + " ("
+        string = "INSERT INTO " + tableName + " ("
         
         for i in  self.colNames:
             string = string + i + ","
@@ -175,16 +186,17 @@ class SQLiteConnect:
 
     
     # print data of a particular key
-    def printDataOfKey(self, key , errorMessage = "key could not be found"):
+    def printDataOfKey(self, key , errorMessage = "key could not be found" , tableName = None):
 
-        string = "SELECT "
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
 
-        for i in self.colNames:
-            string = string + i + ","
-        
-        string = string[:-1] + " from " + self.tableName
+        cursor = self.connObj.execute('select * from ' + tableName)
 
-        cursor = self.connObj.execute(string)
+        colList = list(map(lambda x: x[0], cursor.description))
 
         table = []
         found = False
@@ -202,23 +214,24 @@ class SQLiteConnect:
             table.append(tempTable)
 
         if(found):
-            print(tabulate(table, headers=self.colNames))
+            print(tabulate(table, headers=colList))
         else:
             print(errorMessage)
 
 
     
     # print entire data in a table
-    def printData(self , errorMessage = "No data in table"):
+    def printData(self , errorMessage = "No data in table" , tableName = None):
 
-        string = "SELECT "
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
 
-        for i in self.colNames:
-            string = string + i + ","
-        
-        string = string[:-1] + " from " + self.tableName
+        cursor = self.connObj.execute('select * from ' + tableName)
 
-        cursor = self.connObj.execute(string)
+        colList = list(map(lambda x: x[0], cursor.description))
 
         table = []
         found = False
@@ -235,7 +248,7 @@ class SQLiteConnect:
             table.append(tempTable)
 
         if(found):
-            print(tabulate(table, headers=self.colNames))
+            print(tabulate(table, headers=colList))
         else:
             print(errorMessage)
 
@@ -243,16 +256,15 @@ class SQLiteConnect:
 
     # return data of a particular key
     # returns none if not found
-    def returnDataOfKey(self, key):
+    def returnDataOfKey(self, key , tableName = None):
 
-        string = "SELECT "
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
 
-        for i in self.colNames:
-            string = string + i + ","
-        
-        string = string[:-1] + " from " + self.tableName
-
-        cursor = self.connObj.execute(string)
+        cursor = self.connObj.execute('select * from ' + tableName)
 
         table = []
 
@@ -276,18 +288,21 @@ class SQLiteConnect:
     
     # return entire data in a table
     # returns None if no data is present
-    def returnData(self):
+    def returnData(self , tableName = None):
 
-        string = "SELECT "
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
 
-        for i in self.colNames:
-            string = string + i + ","
-        
-        string = string[:-1] + " from " + self.tableName
+        cursor = self.connObj.execute('select * from ' + tableName)
 
-        cursor = self.connObj.execute(string)
+        colList = list(map(lambda x: x[0], cursor.description))
 
         table = []
+
+        table.append(colList)
 
         for row in cursor:
             tempTable = []
@@ -307,15 +322,23 @@ class SQLiteConnect:
 
 
     # function for updating a col data in row
-    def updateRow(self , toUpdate , value , key):
+    def updateRow(self , colName , value , key , tableName = None):
 
-        string = "UPDATE " + self.tableName + " set " + str(toUpdate) + " = "
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
+
+        string = "UPDATE " + tableName + " set " + str(colName) + " = "
+
+        cor = self.connObj.execute("PRAGMA table_info(" + tableName + ")")
 
         valueIsText = False
 
-        for i in self.colList:
-            if(str(i[0]) == str(toUpdate)):
-                if(str(i[1]) == "TEXT"):
+        for i in cor:
+            if(i[1] == colName):
+                if(i[2] == 'TEXT'):
                     valueIsText = True
 
         if(valueIsText):
@@ -330,9 +353,15 @@ class SQLiteConnect:
 
 
     # function for deleting a row
-    def deleteRow(self, key , updateId = False):
+    def deleteRow(self, key , updateId = False , tableName = None):
 
-        string = "DELETE from " + self.tableName + " where ID = " + str(key) + ";"
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
+
+        string = "DELETE from " + tableName + " where ID = " + str(key) + ";"
 
         self.connObj.execute(string)
         self.connObj.commit()
@@ -353,20 +382,30 @@ class SQLiteConnect:
                 if(int(row[0]) == count):
                     pass
                 else:
-                    self.updateRow("ID" , count , row[0])
+                    self.updateRow("ID" , count , row[0] , tableName)
                 
                 count = count + 1
 
 
     # function to upadte the entire row corresponding to a key
-    def updateEntireRow(self , valuesList , key):
+    def updateEntireRow(self , valuesList , key , tableName = None):
+
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
 
         key = int(key)
 
         count = 1
 
+        cursor = self.connObj.execute('select * from ' + tableName)
+
+        colList = list(map(lambda x: x[0], cursor.description))
+
         for i in valuesList:
-            self.updateRow(self.colNames[count] , i , key)
+            self.updateRow(colList[count] , i , key , tableName)
             count = count + 1 
 
 
@@ -384,7 +423,7 @@ if __name__ == "__main__":
 
     contentList = [["test1" , "TEXT" , 1] , ["test2" , "TEXT" , 1] , ["test3" , "INT" , 1]]
 
-    obj.setTable("testTable" , contentList)
+    obj.createTable("testTable" , contentList)
 
     valuesList = ["hello" , "world" , 123]
 
