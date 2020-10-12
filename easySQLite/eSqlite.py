@@ -30,7 +30,6 @@ class SQLiteConnect:
     def __init__(self):
         self.security = False
         self.objSecurity = SED.ED()
-        self.objSecurity.setSecurityLevel_toLow()
         self.connObj = None
         self.colNames = []
         self.colList = []
@@ -38,17 +37,17 @@ class SQLiteConnect:
 
     
     # function to enable to database encryption and to set password as well
-    def setPassword(self , password , pin = 123456 , keysalt = "easySQLite"):
-        self.objSecurity.setPassword_Pin_keySalt(password , pin , keysalt)
-        self.security = True
+    # def setPassword(self , password , pin = 123456 , keysalt = "easySQLite"):
+    #     self.objSecurity.setPassword_Pin_keySalt(password , pin , keysalt)
+    #     self.security = True
 
-        contentList = [["PASS" , "TEXT" , 1]]
-        table = self.tableName
-        self.setTable("letscodeofficial.com" , contentList , raiseException)
-        valuesList = []
-        valuesList.append(self.objSecurity.returnEncryptedPassword(password))
-        self.insertIntoTable(valuesList)
-        self.tableName = table
+    #     contentList = [["PASS" , "TEXT" , 1]]
+    #     table = self.tableName
+    #     self.setTable("letscodeofficial.com" , contentList , raiseException)
+    #     valuesList = []
+    #     valuesList.append(self.objSecurity.returnEncryptedPassword(password))
+    #     self.insertIntoTable(valuesList)
+    #     self.tableName = table
 
 
 
