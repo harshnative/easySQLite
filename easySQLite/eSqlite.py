@@ -420,6 +420,11 @@ class SQLiteConnect:
             print(errorMessage)
 
 
+    # in built tabulate printer
+    def tabulatePrinter(self , table , headersList):
+        print(tabulate(table, headers=headersList))
+
+
 
     # return data of a particular key
     # returns none if not found
@@ -806,4 +811,3 @@ if __name__ == "__main__":
 # TODO: make the table delete function as well
 # make the db delete fucntion as well 
 # make the tabulate built in
-# seperate function for update ID
