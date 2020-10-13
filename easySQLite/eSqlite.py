@@ -91,10 +91,11 @@ class SQLiteConnect:
                 return False
 
 
+    # function to encryt the things
     def encrypter(self , string):
         return self.objSecurity.encrypter(str(string))
 
-    
+    # function to decrypt the things
     def decrypter(self , string):
         return self.objSecurity.decrypter(str(string))
 
@@ -128,7 +129,7 @@ class SQLiteConnect:
         # storing teh table name for further use
         self.tableName = str(tableName)
 
-
+        # a secure tag will be added after the table name
         if(self.security):
             tableName = tableName + " " + self.tableNameAdd
 
@@ -226,6 +227,7 @@ class SQLiteConnect:
         # adding values to query
         for i in valuesList:
 
+            # if the encryption is on then it will be always text 
             if(self.security):
                 string = string + "'" + self.encrypter(i) + "'" + ","
 
@@ -322,19 +324,21 @@ class SQLiteConnect:
 
                 # adding all the cols data
                 for i,j in zip(colList , dataTypeList):
+
+                    # ID is not encryted
                     if(self.security and (i != "ID")):
                         if(j == "TEXT"):
-                            tempTable.append(self.decrypter(str(row[count])))
+                            tempTable.append(self.decrypter((row[count])))
                         elif(j == "INT"):
                             try:
-                                tempTable.append(int(self.decrypter(str(row[count]))))
+                                tempTable.append(int(self.decrypter((row[count]))))
                             except ValueError:
-                                tempTable.append((self.decrypter(str(row[count]))))
+                                tempTable.append((self.decrypter((row[count]))))
                         else:
                             try:
-                                tempTable.append(float(self.decrypter(str(row[count]))))
+                                tempTable.append(float(self.decrypter((row[count]))))
                             except ValueError:
-                                tempTable.append((self.decrypter(str(row[count]))))
+                                tempTable.append((self.decrypter((row[count]))))
                     else:    
                         tempTable.append(row[count])
                     count += 1
@@ -389,19 +393,20 @@ class SQLiteConnect:
             # getting all col data
             for i,j in zip(colList , dataTypeList):
                 
+                # ID is not encrypted
                 if(self.security and (i != "ID")):
                     if(j == "TEXT"):
-                        tempTable.append(self.decrypter(str(row[count])))
+                        tempTable.append(self.decrypter((row[count])))
                     elif(j == "INT"):
                         try:
-                                tempTable.append(int(self.decrypter(str(row[count]))))
+                                tempTable.append(int(self.decrypter((row[count]))))
                         except ValueError:
-                            tempTable.append((self.decrypter(str(row[count]))))
+                            tempTable.append((self.decrypter((row[count]))))
                     else:
                         try:
-                            tempTable.append(float(self.decrypter(str(row[count]))))
+                            tempTable.append(float(self.decrypter((row[count]))))
                         except ValueError:
-                            tempTable.append((self.decrypter(str(row[count]))))
+                            tempTable.append((self.decrypter((row[count]))))
                 else:    
                     tempTable.append(row[count])
                 count += 1
@@ -458,17 +463,17 @@ class SQLiteConnect:
                 for i,j in zip(colList , dataTypeList):
                     if(self.security and (i != "ID")):
                         if(j == "TEXT"):
-                            tempTable.append(self.decrypter(str(row[count])))
+                            tempTable.append(self.decrypter((row[count])))
                         elif(j == "INT"):
                             try:
-                                tempTable.append(int(self.decrypter(str(row[count]))))
+                                tempTable.append(int(self.decrypter((row[count]))))
                             except ValueError:
-                                tempTable.append((self.decrypter(str(row[count]))))
+                                tempTable.append((self.decrypter((row[count]))))
                         else:
                             try:
-                                tempTable.append(float(self.decrypter(str(row[count]))))
+                                tempTable.append(float(self.decrypter((row[count]))))
                             except ValueError:
-                                tempTable.append((self.decrypter(str(row[count]))))
+                                tempTable.append((self.decrypter((row[count]))))
                     else:    
                         tempTable.append(row[count])
                     count += 1
@@ -525,17 +530,17 @@ class SQLiteConnect:
                 
                 if(self.security and (i != "ID")):
                     if(j == "TEXT"):
-                        tempTable.append(self.decrypter(str(row[count])))
+                        tempTable.append(self.decrypter((row[count])))
                     elif(j == "INT"):
                         try:
-                                tempTable.append(int(self.decrypter(str(row[count]))))
+                                tempTable.append(int(self.decrypter((row[count]))))
                         except ValueError:
-                            tempTable.append((self.decrypter(str(row[count]))))
+                            tempTable.append((self.decrypter((row[count]))))
                     else:
                         try:
-                            tempTable.append(float(self.decrypter(str(row[count]))))
+                            tempTable.append(float(self.decrypter((row[count]))))
                         except ValueError:
-                            tempTable.append((self.decrypter(str(row[count]))))
+                            tempTable.append((self.decrypter((row[count]))))
                 else:    
                     tempTable.append(row[count])
                 count += 1
@@ -571,6 +576,8 @@ class SQLiteConnect:
         cor = self.connObj.execute("PRAGMA table_info(" + "'" + tableName + "'" + ")")
 
         if(self.security):
+
+            # id is not ecnrypted
             if(colName != "ID"):
                 string = string + "'" + self.encrypter(value) + "' "
             else:
