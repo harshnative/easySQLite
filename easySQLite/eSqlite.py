@@ -702,7 +702,39 @@ class SQLiteConnect:
             count = count + 1 
 
 
+    def delEntireTable(self , tableName = None):
+
+        # checking for stored table name 
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
+        
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
     
+        string = "DROP TABLE " + "'" + tableName + "'"
+
+        self.connObj.execute(string)
+        self.connObj.commit()
+
+    
+    def addColToTable(self , colName , dataType = "TEXT" , NULL = False , tableName = None):
+
+        # checking for stored table name 
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
+        
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
+
+        string = "alter table " + "'" + tableName + "'" + " add column " + "'" + colName + "'" + "    " + dataType + "    " +  "'" + str(int(NULL)) + "'"
+        self.connObj.execute(string)
+        self.connObj.commit()
 
 
 
@@ -766,11 +798,15 @@ if __name__ == "__main__":
     print("\n\n")
     obj.printData()
 
+    # obj.delEntireTable()
+
     valuesList = ["hello555" , "world4555" , 456789]
     obj.updateEntireRow(valuesList , 2)
 
     print("\n\n")
     obj.printData()
+
+    obj.addColToTable("next")
 
     
     
@@ -808,6 +844,5 @@ if __name__ == "__main__":
 
 
 
-# TODO: make the table delete function as well
 # make the db delete fucntion as well 
-# make the tabulate built in
+# if to commit or not
