@@ -46,6 +46,9 @@ class SQLiteConnect:
         # dataBase name
         self.dataBaseName = None
 
+        # to add to table name when table is secured
+        self.tableNameAdd = "secured_usingSED"
+
         # name of the password storing table
         self.passwordStorerTable = "password storer table , 0b242ba11ab4a144a48cd25e88b98d161a7ba1c68ad65646cb9207f66aee1a64"
 
@@ -88,6 +91,14 @@ class SQLiteConnect:
                 return False
 
 
+    def encrypter(self , string):
+        return self.objSecurity.encrypter(str(string))
+
+    
+    def decrypter(self , string):
+        return self.objSecurity.decrypter(str(string))
+
+
     # function for toggling the security status
     def setSecurityStatus(self , status = True):
         self.security = status
@@ -102,6 +113,7 @@ class SQLiteConnect:
     # function to get the database name
     def getDatabase(self):
         return self.dataBaseName
+        
 
     # function to create the table
     def createTable(self, tableName , contentList , raiseException = False):
@@ -116,8 +128,12 @@ class SQLiteConnect:
         # storing teh table name for further use
         self.tableName = str(tableName)
 
+
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
+
         # generating the query string
-        string = "CREATE TABLE " + "'" + self.tableName + "'" + " ("
+        string = "CREATE TABLE " + "'" + tableName + "'" + " ("
 
         # adding ID
         string = string + "ID INT PRIMARY KEY     NOT NULL,"
@@ -166,6 +182,9 @@ class SQLiteConnect:
             else:
                 tableName = self.tableName
 
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
+
         # getting the key value if not passed
         if(keyPass == None):
             key = self.returnLastKey() 
@@ -206,12 +225,16 @@ class SQLiteConnect:
         
         # adding values to query
         for i in valuesList:
-            
-            # checking the col data is of INT or REAL
-            if((dataTypeList[tempCount] == "INT") or (dataTypeList[tempCount] == "REAL")):
-                string = string + str(i) + ","
+
+            if(self.security):
+                string = string + "'" + self.encrypter(i) + "'" + ","
+
             else:
-                string = string + "'" + i + "'" + ","
+                # checking the col data is of INT or REAL
+                if((dataTypeList[tempCount] == "INT") or (dataTypeList[tempCount] == "REAL")):
+                    string = string + str(i) + ","
+                else:
+                    string = string + "'" + i + "'" + ","
 
             tempCount += 1
 
@@ -231,6 +254,9 @@ class SQLiteConnect:
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
+
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
 
         # generating query string
         string = "SELECT "
@@ -266,12 +292,27 @@ class SQLiteConnect:
             else:
                 tableName = self.tableName
 
-        # getting the col list
-        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
-        colList = list(map(lambda x: x[0], cursor.description))
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
+
+        # column list in the table
+        colList = []
+
+        # datatypes of the cols in the table
+        dataTypeList = []
+
+        # getting the table info
+        cor = self.connObj.execute("PRAGMA table_info(" + "'" + tableName + "'" + ")")
+
+        # generating col list and datatype list
+        for i in cor:
+            colList.append(i[1])
+            dataTypeList.append(i[2])
 
         table = []
         found = False
+
+        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
 
         for row in cursor:
             tempTable = []
@@ -280,8 +321,22 @@ class SQLiteConnect:
                 count = 0
 
                 # adding all the cols data
-                for _ in colList:
-                    tempTable.append(row[count])
+                for i,j in zip(colList , dataTypeList):
+                    if(self.security and (i != "ID")):
+                        if(j == "TEXT"):
+                            tempTable.append(self.decrypter(str(row[count])))
+                        elif(j == "INT"):
+                            try:
+                                tempTable.append(int(self.decrypter(str(row[count]))))
+                            except ValueError:
+                                tempTable.append((self.decrypter(str(row[count]))))
+                        else:
+                            try:
+                                tempTable.append(float(self.decrypter(str(row[count]))))
+                            except ValueError:
+                                tempTable.append((self.decrypter(str(row[count]))))
+                    else:    
+                        tempTable.append(row[count])
                     count += 1
                 found = True
         
@@ -304,12 +359,27 @@ class SQLiteConnect:
             else:
                 tableName = self.tableName
 
-        # getting the col list
-        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
-        colList = list(map(lambda x: x[0], cursor.description))
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
+
+        # column list in the table
+        colList = []
+
+        # datatypes of the cols in the table
+        dataTypeList = []
+
+        # getting the table info
+        cor = self.connObj.execute("PRAGMA table_info(" + "'" + tableName + "'" + ")")
+
+        # generating col list and datatype list
+        for i in cor:
+            colList.append(i[1])
+            dataTypeList.append(i[2])
 
         table = []
         found = False
+
+        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
 
         for row in cursor:
             tempTable = []
@@ -317,8 +387,23 @@ class SQLiteConnect:
             count = 0
 
             # getting all col data
-            for _ in colList:
-                tempTable.append(row[count])
+            for i,j in zip(colList , dataTypeList):
+                
+                if(self.security and (i != "ID")):
+                    if(j == "TEXT"):
+                        tempTable.append(self.decrypter(str(row[count])))
+                    elif(j == "INT"):
+                        try:
+                                tempTable.append(int(self.decrypter(str(row[count]))))
+                        except ValueError:
+                            tempTable.append((self.decrypter(str(row[count]))))
+                    else:
+                        try:
+                            tempTable.append(float(self.decrypter(str(row[count]))))
+                        except ValueError:
+                            tempTable.append((self.decrypter(str(row[count]))))
+                else:    
+                    tempTable.append(row[count])
                 count += 1
             found = True
         
@@ -335,28 +420,57 @@ class SQLiteConnect:
     # returns none if not found
     def returnDataOfKey(self, key , tableName = None):
 
-        # checking for stored table name
+        # checking whether their is stored table name is module
         if(tableName == None):
             if(self.tableName == None):
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
 
-        # getting col list
-        cursor = self.connObj.execute('select * from ' + "'" +  tableName + "'")
-        colList = list(map(lambda x: x[0], cursor.description))
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
+
+        # column list in the table
+        colList = []
+
+        # datatypes of the cols in the table
+        dataTypeList = []
+
+        # getting the table info
+        cor = self.connObj.execute("PRAGMA table_info(" + "'" + tableName + "'" + ")")
+
+        # generating col list and datatype list
+        for i in cor:
+            colList.append(i[1])
+            dataTypeList.append(i[2])
 
         table = []
+
+        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
 
         for row in cursor:
             tempTable = []
             
             if(int(row[0] == key)):
                 count = 0
-                
-                # getting all cols data
-                for _ in colList:
-                    tempTable.append(row[count])
+
+                # adding all the cols data
+                for i,j in zip(colList , dataTypeList):
+                    if(self.security and (i != "ID")):
+                        if(j == "TEXT"):
+                            tempTable.append(self.decrypter(str(row[count])))
+                        elif(j == "INT"):
+                            try:
+                                tempTable.append(int(self.decrypter(str(row[count]))))
+                            except ValueError:
+                                tempTable.append((self.decrypter(str(row[count]))))
+                        else:
+                            try:
+                                tempTable.append(float(self.decrypter(str(row[count]))))
+                            except ValueError:
+                                tempTable.append((self.decrypter(str(row[count]))))
+                    else:    
+                        tempTable.append(row[count])
                     count += 1
         
             table.append(tempTable)
@@ -373,20 +487,33 @@ class SQLiteConnect:
     # i[1] of this list is the list of col names 
     def returnData(self , tableName = None):
 
-        # checking for stored table name
+        # checking if their is stored table name is module 
         if(tableName == None):
             if(self.tableName == None):
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
 
-        # getting col list
-        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
-        colList = list(map(lambda x: x[0], cursor.description))
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
+
+        # column list in the table
+        colList = []
+
+        # datatypes of the cols in the table
+        dataTypeList = []
+
+        # getting the table info
+        cor = self.connObj.execute("PRAGMA table_info(" + "'" + tableName + "'" + ")")
+
+        # generating col list and datatype list
+        for i in cor:
+            colList.append(i[1])
+            dataTypeList.append(i[2])
 
         table = []
 
-        table.append(colList)
+        cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
 
         for row in cursor:
             tempTable = []
@@ -394,8 +521,23 @@ class SQLiteConnect:
             count = 0
 
             # getting all col data
-            for _ in colList:
-                tempTable.append(row[count])
+            for i,j in zip(colList , dataTypeList):
+                
+                if(self.security and (i != "ID")):
+                    if(j == "TEXT"):
+                        tempTable.append(self.decrypter(str(row[count])))
+                    elif(j == "INT"):
+                        try:
+                                tempTable.append(int(self.decrypter(str(row[count]))))
+                        except ValueError:
+                            tempTable.append((self.decrypter(str(row[count]))))
+                    else:
+                        try:
+                            tempTable.append(float(self.decrypter(str(row[count]))))
+                        except ValueError:
+                            tempTable.append((self.decrypter(str(row[count]))))
+                else:    
+                    tempTable.append(row[count])
                 count += 1
         
             table.append(tempTable)
@@ -419,24 +561,35 @@ class SQLiteConnect:
             else:
                 tableName = self.tableName
 
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
+
         # query string
-        string = "UPDATE " + tableName + " set " + str(colName) + " = "
+        string = "UPDATE " + "'" + tableName + "'" + " set " + str(colName) + " = "
 
         # gettign table info 
         cor = self.connObj.execute("PRAGMA table_info(" + "'" + tableName + "'" + ")")
 
-        # finding if the value to be updated is text or not
-        valueIsText = False
+        if(self.security):
+            if(colName != "ID"):
+                string = string + "'" + self.encrypter(value) + "' "
+            else:
+                string = string + str(value) + " "
 
-        for i in cor:
-            if(i[1] == colName):
-                if(i[2] == 'TEXT'):
-                    valueIsText = True
-
-        if(valueIsText):
-            string = string + "'" + value + "' "
         else:
-            string = string + str(value) + " "
+
+            # finding if the value to be updated is text or not
+            valueIsText = False
+
+            for i in cor:
+                if(i[1] == colName):
+                    if(i[2] == 'TEXT'):
+                        valueIsText = True
+
+            if(valueIsText):
+                string = string + "'" + value + "' "
+            else:
+                string = string + str(value) + " "
 
         string = string + "where ID = " + str(key)
 
@@ -453,6 +606,11 @@ class SQLiteConnect:
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
+
+        tempTableName = tableName
+
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
 
         # query
         string = "DELETE from " + "'" + tableName + "'" + " where ID = " + str(key) + ";"
@@ -482,7 +640,7 @@ class SQLiteConnect:
                 if(int(row[0]) == count):
                     pass
                 else:
-                    self.updateRow("ID" , count , row[0] , tableName)
+                    self.updateRow("ID" , count , row[0] , tempTableName)
                 
                 count = count + 1
 
@@ -496,6 +654,11 @@ class SQLiteConnect:
                 raise Exception("either pass a table name or create that table using createTable function")
             else:
                 tableName = self.tableName
+        
+        tempTableName = tableName
+
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
 
         key = int(key)
 
@@ -506,7 +669,7 @@ class SQLiteConnect:
         colList = list(map(lambda x: x[0], cursor.description))
 
         for i in valuesList:
-            self.updateRow(colList[count] , i , key , tableName)
+            self.updateRow(colList[count] , i , key , tempTableName)
             count = count + 1 
 
 
@@ -521,6 +684,10 @@ if __name__ == "__main__":
     obj = SQLiteConnect()
 
     obj.setDatabase("test.db")
+
+    print(obj.setPassword("hello boi"))
+
+    obj.setSecurityStatus(True)
 
     contentList = [["test1" , "TEXT" , 1] , ["test2" , "TEXT" , 1] , ["test3" , "INT" , 1]]
 
