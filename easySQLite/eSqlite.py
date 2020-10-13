@@ -622,34 +622,51 @@ class SQLiteConnect:
         # query
         string = "DELETE from " + "'" + tableName + "'" + " where ID = " + str(key) + ";"
 
+        self.connObj.execute(string)
+        self.connObj.commit()
+
+        if(updateId):
+            self.updateIDs(tempTableName)
+
+    
+    # updated id's function
+    def updateIDs(self , tableName = None):
+
+        # checking for stored table name
+        if(tableName == None):
+            if(self.tableName == None):
+                raise Exception("either pass a table name or create that table using createTable function")
+            else:
+                tableName = self.tableName
+
+        tempTableName = tableName
+
+        if(self.security):
+            tableName = tableName + " " + self.tableNameAdd
+
         # getting col list 
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
         colList = list(map(lambda x: x[0], cursor.description))
 
-
-        self.connObj.execute(string)
-        self.connObj.commit()
-
         # updating the ids
-        if(updateId):
-            string = "SELECT "
+        string = "SELECT "
 
-            for i in colList:
-                string = string + i + ","
+        for i in colList:
+            string = string + i + ","
+        
+        string = string[:-1] + " from " + "'" + tableName + "'"
+
+        cursor = self.connObj.execute(string)
+
+        count = 0
+
+        for row in cursor:
+            if(int(row[0]) == count):
+                pass
+            else:
+                self.updateRow("ID" , count , row[0] , tempTableName)
             
-            string = string[:-1] + " from " + "'" + tableName + "'"
-
-            cursor = self.connObj.execute(string)
-
-            count = 0
-
-            for row in cursor:
-                if(int(row[0]) == count):
-                    pass
-                else:
-                    self.updateRow("ID" , count , row[0] , tempTableName)
-                
-                count = count + 1
+            count = count + 1
 
 
     # function to upadte the entire row corresponding to a key
