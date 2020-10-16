@@ -58,7 +58,7 @@ class SQLiteConnect:
     
     # function to enable to database encryption and to set password as well
     def setPassword(self , password , pin = 123456):
-        """return None if the password not present in table before (first time use)
+        """return None if the password not present in data base before (first time use)
         return True if the password and pin are setted correctly
         return False if the authentication failed"""
 
@@ -74,21 +74,28 @@ class SQLiteConnect:
 
         try:
             # exception will be raised if the table already exist or some problem occur
+
+            # security needs to turned on to add self.tableNameAdd to tableName while creating table
             self.security = True
+
+            # creating table
             self.createTable(self.passwordStorerTable , contentList , True)
 
             valuesList = [self.objSecurity.returnPassForStoring()]
             self.insertIntoTable(valuesList , forPass=True)
+
+            # restoring data
             self.tableName = tempTableName
             self.security = tempSecurity
             return
 
         except Exception:
 
+            # security needs to be off so that self.tbaleNameAdd is not added
             self.security = False
+
             # getting the current password stored in table
             data = self.returnDataOfKey(0 , self.passwordStorerTable + " " + self.tableNameAdd)
-
             
             data = data[0]
             data = data[1]
@@ -153,8 +160,10 @@ class SQLiteConnect:
         # adding rest of the content list
         for i in contentList:
             
+            # adding the col name
             string = string + "'" + str(i[0]) + "'" + "    "
 
+            # adding col data type 
             if(i[1] == "INT"):
                 string = string + "INT" + "    "
             elif(i[1] == "REAL"):
@@ -162,6 +171,7 @@ class SQLiteConnect:
             else:
                 string = string + "TEXT" + "    "
 
+            # adding null or not null
             try:
                 if(int(i[2]) == 1):
                     string = string + "NOT NULL,"
@@ -191,7 +201,10 @@ class SQLiteConnect:
             else:
                 tableName = self.tableName
 
+        # self.tableNameAdd will be added so that secured table can be identified during password change 
         if(self.security):
+
+            # need to be only added once
             if(not(ESQLiteGlobalMethods.isSubString(tableName , self.tableNameAdd))):
                 tableName = tableName + " " + self.tableNameAdd
 
@@ -203,7 +216,7 @@ class SQLiteConnect:
         
     
     # function to insert data into table
-    def insertIntoTable(self, valuesList , keyPass = None , tableName = None , forPass = False):
+    def insertIntoTable(self, valuesList , keyPass = None , tableName = None , forPass = False , commit = True):
 
         tableName = self.getOperableTableName(tableName)
 
@@ -249,7 +262,8 @@ class SQLiteConnect:
         for i in valuesList:
 
             # if the encryption is on then it will be always text 
-            if(self.security and not(forPass)):
+            # also while insert data into the password table , it should not be encrypted further
+            if(self.security and (not(forPass))):
                 string = string + "'" + self.encrypter(i) + "'" + ","
 
             else:
@@ -264,17 +278,18 @@ class SQLiteConnect:
         string = string[:-1] + " )"
 
         self.connObj.execute(string)
-        self.connObj.commit()
+
+        if(commit):
+            self.connObj.commit()
 
 
     # function to return the last ID
+    # id will be none if no data is present in table
     def returnLastKey(self , tableName = None):
 
         tableName = self.getOperableTableName(tableName)
 
-        # getting the col names list
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
-
 
         id = None
 
@@ -306,11 +321,13 @@ class SQLiteConnect:
         table = []
         found = False
 
+        # prasing through the table
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
 
         for row in cursor:
             tempTable = []
             
+            # the key matches with id in table
             if(int(row[0] == key)):
                 count = 0
 
@@ -318,19 +335,29 @@ class SQLiteConnect:
                 for i,j in zip(colList , dataTypeList):
 
                     # ID is not encryted
+                    # things will be conv to respective data type after decryption
                     if(self.security and (i != "ID")):
                         if(j == "TEXT"):
-                            tempTable.append(self.decrypter((row[count])))
+                            try:
+                                tempTable.append(self.decrypter((row[count])))
+                            except Exception:
+                                tempTable.append(None)
                         elif(j == "INT"):
                             try:
                                 tempTable.append(int(self.decrypter((row[count]))))
                             except ValueError:
                                 tempTable.append((self.decrypter((row[count]))))
+                            except Exception:
+                                tempTable.append(None)
                         else:
                             try:
                                 tempTable.append(float(self.decrypter((row[count]))))
                             except ValueError:
                                 tempTable.append((self.decrypter((row[count]))))
+                            except Exception:
+                                tempTable.append(None)
+
+                    # if the data is not ecrypted
                     else:    
                         tempTable.append(row[count])
                     count += 1
@@ -349,7 +376,7 @@ class SQLiteConnect:
     def printData(self , errorMessage = "No data in table" , tableName = None):
 
         tableName = self.getOperableTableName(tableName)
-        
+
         # column list in the table
         colList = []
 
@@ -380,17 +407,26 @@ class SQLiteConnect:
                 # ID is not encrypted
                 if(self.security and (i != "ID")):
                     if(j == "TEXT"):
-                        tempTable.append(self.decrypter((row[count])))
+                        try:
+                            tempTable.append(self.decrypter((row[count])))
+                        except Exception:
+                            tempTable.append(None)
                     elif(j == "INT"):
                         try:
-                                tempTable.append(int(self.decrypter((row[count]))))
+                            tempTable.append(int(self.decrypter((row[count]))))
                         except ValueError:
                             tempTable.append((self.decrypter((row[count]))))
+                        except Exception:
+                            tempTable.append(None)
                     else:
                         try:
                             tempTable.append(float(self.decrypter((row[count]))))
                         except ValueError:
                             tempTable.append((self.decrypter((row[count]))))
+                        except Exception:
+                            tempTable.append(None)
+                
+                # if the data is not encrypted
                 else:    
                     tempTable.append(row[count])
                 count += 1
@@ -444,17 +480,26 @@ class SQLiteConnect:
                 for i,j in zip(colList , dataTypeList):
                     if(self.security and (i != "ID")):
                         if(j == "TEXT"):
-                            tempTable.append(self.decrypter((row[count])))
+                            try:
+                                tempTable.append(self.decrypter((row[count])))
+                            except Exception:
+                                tempTable.append(None)
                         elif(j == "INT"):
                             try:
                                 tempTable.append(int(self.decrypter((row[count]))))
                             except ValueError:
                                 tempTable.append((self.decrypter((row[count]))))
+                            except Exception:
+                                tempTable.append(None)
                         else:
                             try:
                                 tempTable.append(float(self.decrypter((row[count]))))
                             except ValueError:
                                 tempTable.append((self.decrypter((row[count]))))
+                            except Exception:
+                                tempTable.append(None)
+                    
+                    # if not encrypted
                     else:    
                         tempTable.append(row[count])
                     count += 1
@@ -505,17 +550,26 @@ class SQLiteConnect:
                 
                 if(self.security and (i != "ID")):
                     if(j == "TEXT"):
-                        tempTable.append(self.decrypter((row[count])))
+                        try:
+                            tempTable.append(self.decrypter((row[count])))
+                        except Exception:
+                            tempTable.append(None)
                     elif(j == "INT"):
                         try:
                             tempTable.append(int(self.decrypter((row[count]))))
                         except ValueError:
                             tempTable.append((self.decrypter((row[count]))))
+                        except Exception:
+                            tempTable.append(None)
                     else:
                         try:
                             tempTable.append(float(self.decrypter((row[count]))))
                         except ValueError:
                             tempTable.append((self.decrypter((row[count]))))
+                        except Exception:
+                            tempTable.append(None)
+
+                # if not encrypted
                 else:    
                     tempTable.append(row[count])
                 count += 1
@@ -530,9 +584,9 @@ class SQLiteConnect:
 
 
     # function for updating a col data in row of particular key
-    # returns True if key was found and operation was sucessful
+    # returns True if key was found and operation was sucessfull
     # return False else wise
-    def updateRow(self , colName , value , key , tableName = None):
+    def updateRow(self , colName , value , key , tableName = None , commit = True):
 
         tableName = self.getOperableTableName(tableName)
 
@@ -568,11 +622,13 @@ class SQLiteConnect:
         string = string + "where ID = " + str(key)
 
         self.connObj.execute(string)
-        self.connObj.commit()
+
+        if(commit):
+            self.connObj.commit()
 
 
     # function for deleting a row
-    def deleteRow(self, key , updateId = False , tableName = None):
+    def deleteRow(self, key , updateId = False , tableName = None , commit = True):
 
         tempTableName = tableName
 
@@ -582,14 +638,16 @@ class SQLiteConnect:
         string = "DELETE from " + "'" + tableName + "'" + " where ID = " + str(key) + ";"
 
         self.connObj.execute(string)
-        self.connObj.commit()
+
+        if(commit):
+            self.connObj.commit()
 
         if(updateId):
             self.updateIDs(tempTableName)
 
     
     # updated id's function
-    def updateIDs(self , tableName = None):
+    def updateIDs(self , tableName = None , commit = True):
 
         tempTableName = tableName
 
@@ -617,13 +675,13 @@ class SQLiteConnect:
             elif(int(row[0]) == count):
                 pass
             else:
-                self.updateRow("ID" , count , row[0] , tempTableName)
+                self.updateRow("ID" , count , row[0] , tempTableName , commit)
             
             count = count + 1
 
 
     # function to upadte the entire row corresponding to a key
-    def updateEntireRow(self , valuesList , key , tableName = None):
+    def updateEntireRow(self , valuesList , key , tableName = None , commit = True):
 
         tempTableName = tableName
 
@@ -638,32 +696,38 @@ class SQLiteConnect:
         colList = list(map(lambda x: x[0], cursor.description))
 
         for i in valuesList:
-            self.updateRow(colList[count] , i , key , tempTableName)
+            self.updateRow(colList[count] , i , key , tempTableName , commit)
             count = count + 1 
 
 
-    def delEntireTable(self , tableName = None):
+    def delEntireTable(self , tableName = None , commit = True):
 
         tableName = self.getOperableTableName(tableName)
     
         string = "DROP TABLE " + "'" + tableName + "'"
 
         self.connObj.execute(string)
-        self.connObj.commit()
+
+        if(commit):
+            self.connObj.commit()
 
     
     # function to add a col to data base
-    def addColToTable(self , colName , dataType = "TEXT" , NULL = False , tableName = None):
+    def addColToTable(self , colName , dataType = "TEXT" , NULL = False , tableName = None , commit = True):
 
         tableName = self.getOperableTableName(tableName)
 
         string = "alter table " + "'" + tableName + "'" + " add column " + "'" + colName + "'" + "    " + dataType + "    " +  "'" + str(int(NULL)) + "'"
         self.connObj.execute(string)
-        self.connObj.commit()
+
+        if(commit):
+            self.connObj.commit()
 
     
     def changePassword(self , oldPassword , newPassword , oldPin = 123456 , newPin = 123456):
         
+        # if their is not password in db then no need to do operation
+        # operation will fail if the wrong credentials are provided
         status = self.setPassword(oldPassword , oldPin)
 
         if(status == None):
@@ -672,60 +736,87 @@ class SQLiteConnect:
         elif(status == False):
             return False
 
+        # getting the tableNames
         tableNames = self.connObj.execute("SELECT name FROM sqlite_master WHERE type='table';")
 
+        # adding tableNames to a list
         tableNamesList = []
 
         for i in tableNames:
             tableNamesList.append(i[0])
 
-
+        # reserving the current tableName in obj
         tempTableName = self.tableName
+        tempSecurity = self.security
 
+        # traversing each table
         for i in tableNamesList:
 
+            # if the table contains secured by SED then we need to update that table as it has to be now encrypted and decrypted by the new password
+            # also the password storer table is not affected , it is changed that last
             if(ESQLiteGlobalMethods.isSubString(i , self.tableNameAdd) and (not(ESQLiteGlobalMethods.isSubString(i , "0b242ba11ab4a144a48cd25e88b98d161a7ba1c68ad65646cb9207f66aee1a64")))):
 
+                # setting the old credentails for decrypting
                 self.objSecurity.setPassword_Pin(oldPassword , oldPin)
 
+                # getting the table data 
                 tableData = self.returnData(i)
 
+                # getting the col details
                 cor = self.connObj.execute("PRAGMA table_info(" + "'" + i + "'" + ")")
 
                 contentList = []
 
+                # setting new credentials for ecryption
                 self.objSecurity.setPassword_Pin(newPassword , newPin)
 
+                # generating the content list
                 for j in cor:
 
                     if(not(j[1] == "ID")): 
                         tempList = []
+
+                        # col name
                         tempList.append(j[1])
+
+                        # data type
                         tempList.append(j[2])
+
+                        # null or not null
                         tempList.append(j[3])
                         contentList.append(tempList)
 
+                # deleting the old table
                 self.delEntireTable(i)
 
+                # creating new table 
                 self.security = True
                 self.createTable(i , contentList , True)
 
+                # getting the no of cols
                 lenCol = len(tableData[1])
 
+                # the ids id in the table data will not be added to value list
                 for j in tableData:
                     if(not(j[0] == "ID")):
                         valueList = []
                         count = 1
 
+                        # adding data to value list - id will not be added
                         while(count < lenCol):
                             valueList.append(j[count])
                             count += 1
 
+                        # inserting the data into table 
                         self.security = True
                         self.insertIntoTable(valueList)
 
+        # restting the password table with new credentials
         self.delEntireTable(self.passwordStorerTable + " " + self.tableNameAdd)
         self.setPassword(newPassword , newPin)
+
+        # restoring prev obj data
+        self.security = tempSecurity
         self.tableName = tempTableName
 
 
