@@ -5,7 +5,7 @@ from tabulate import tabulate
 
 
 # some of the global methods that will not be accesed by normal user of this module
-class eSQLiteGlobalMethods:
+class ESQLiteGlobalMethods:
 
     # function to tell if the string has the passed subString
     @classmethod
@@ -70,20 +70,31 @@ class SQLiteConnect:
         # content list for generating the password table
         contentList = [["PASS" , "TEXT" , 1]]
 
+        tempSecurity = self.security
+
         try:
             # exception will be raised if the table already exist or some problem occur
+            self.security = True
             self.createTable(self.passwordStorerTable , contentList , True)
+
             valuesList = [self.objSecurity.returnPassForStoring()]
-            self.insertIntoTable(valuesList)
+            self.insertIntoTable(valuesList , forPass=True)
             self.tableName = tempTableName
+            self.security = tempSecurity
             return
 
         except Exception:
 
+            self.security = False
             # getting the current password stored in table
-            data = self.returnDataOfKey(0 , self.passwordStorerTable)
+            data = self.returnDataOfKey(0 , self.passwordStorerTable + " " + self.tableNameAdd)
+
+            
             data = data[0]
             data = data[1]
+
+            self.security = tempSecurity
+            self.tableName = tempTableName
 
             if(self.objSecurity.authenticatePassword(data , password , pin)):
                 return True
@@ -130,7 +141,7 @@ class SQLiteConnect:
         self.tableName = str(tableName)
 
         # a secure tag will be added after the table name
-        if(self.security):
+        if(self.security and (not(ESQLiteGlobalMethods.isSubString(tableName , self.tableNameAdd)))):
             tableName = tableName + " " + self.tableNameAdd
 
         # generating the query string
@@ -181,7 +192,8 @@ class SQLiteConnect:
                 tableName = self.tableName
 
         if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+            if(not(ESQLiteGlobalMethods.isSubString(tableName , self.tableNameAdd))):
+                tableName = tableName + " " + self.tableNameAdd
 
 
         return tableName
@@ -191,7 +203,7 @@ class SQLiteConnect:
         
     
     # function to insert data into table
-    def insertIntoTable(self, valuesList , keyPass = None , tableName = None):
+    def insertIntoTable(self, valuesList , keyPass = None , tableName = None , forPass = False):
 
         tableName = self.getOperableTableName(tableName)
 
@@ -237,7 +249,7 @@ class SQLiteConnect:
         for i in valuesList:
 
             # if the encryption is on then it will be always text 
-            if(self.security):
+            if(self.security and not(forPass)):
                 string = string + "'" + self.encrypter(i) + "'" + ","
 
             else:
@@ -260,24 +272,12 @@ class SQLiteConnect:
 
         tableName = self.getOperableTableName(tableName)
 
-        # # generating query string
-        # string = "SELECT "
-
         # getting the col names list
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
-        # colList = list(map(lambda x: x[0], cursor.description))
+
 
         id = None
 
-        # # adding cols to query
-        # for i in colList:
-        #     string = string + i + ","
-        
-        # string = string[:-1] + " from " + "'" + tableName + "'"
-
-        # cursor = self.connObj.execute(string)
-
-        # prasing the table and finding last key
         for row in cursor:
             id = int(row[0])
 
@@ -349,7 +349,7 @@ class SQLiteConnect:
     def printData(self , errorMessage = "No data in table" , tableName = None):
 
         tableName = self.getOperableTableName(tableName)
-
+        
         # column list in the table
         colList = []
 
@@ -491,6 +491,8 @@ class SQLiteConnect:
 
         table = []
 
+        table.append(colList)
+
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
 
         for row in cursor:
@@ -506,7 +508,7 @@ class SQLiteConnect:
                         tempTable.append(self.decrypter((row[count])))
                     elif(j == "INT"):
                         try:
-                                tempTable.append(int(self.decrypter((row[count]))))
+                            tempTable.append(int(self.decrypter((row[count]))))
                         except ValueError:
                             tempTable.append((self.decrypter((row[count]))))
                     else:
@@ -659,6 +661,77 @@ class SQLiteConnect:
         self.connObj.execute(string)
         self.connObj.commit()
 
+    
+    def changePassword(self , oldPassword , newPassword , oldPin = 123456 , newPin = 123456):
+        
+        status = self.setPassword(oldPassword , oldPin)
+
+        if(status == None):
+            return True
+        
+        elif(status == False):
+            return False
+
+        tableNames = self.connObj.execute("SELECT name FROM sqlite_master WHERE type='table';")
+
+        tableNamesList = []
+
+        for i in tableNames:
+            tableNamesList.append(i[0])
+
+
+        tempTableName = self.tableName
+
+        for i in tableNamesList:
+
+            if(ESQLiteGlobalMethods.isSubString(i , self.tableNameAdd) and (not(ESQLiteGlobalMethods.isSubString(i , "0b242ba11ab4a144a48cd25e88b98d161a7ba1c68ad65646cb9207f66aee1a64")))):
+
+                self.objSecurity.setPassword_Pin(oldPassword , oldPin)
+
+                tableData = self.returnData(i)
+
+                cor = self.connObj.execute("PRAGMA table_info(" + "'" + i + "'" + ")")
+
+                contentList = []
+
+                self.objSecurity.setPassword_Pin(newPassword , newPin)
+
+                for j in cor:
+
+                    if(not(j[1] == "ID")): 
+                        tempList = []
+                        tempList.append(j[1])
+                        tempList.append(j[2])
+                        tempList.append(j[3])
+                        contentList.append(tempList)
+
+                self.delEntireTable(i)
+
+                self.security = True
+                self.createTable(i , contentList , True)
+
+                lenCol = len(tableData[1])
+
+                for j in tableData:
+                    if(not(j[0] == "ID")):
+                        valueList = []
+                        count = 1
+
+                        while(count < lenCol):
+                            valueList.append(j[count])
+                            count += 1
+
+                        self.security = True
+                        self.insertIntoTable(valueList)
+
+        self.delEntireTable(self.passwordStorerTable + " " + self.tableNameAdd)
+        self.setPassword(newPassword , newPin)
+        self.tableName = tempTableName
+
+
+
+
+
 
 
 
@@ -673,7 +746,7 @@ if __name__ == "__main__":
 
     obj.setSecurityStatus(True)
 
-    contentList = [["test1 456" , "TEXT" , 1] , ["test2  456" , "TEXT" , 1] , ["test3    456" , "INT" , 1]]
+    contentList = [["test1 456" , "TEXT" , 1] , ["test2  456" , "TEXT" , 1] , ["test3    456" , "INT" , 0]]
 
     obj.createTable("testTable" , contentList)
 
@@ -729,18 +802,17 @@ if __name__ == "__main__":
     print("\n\n")
     obj.printData()
 
-    obj.addColToTable("next")
+    print("\n\n")
+    print(obj.returnData())
 
-    
-    
+    # obj.addColToTable("next")
 
+    print(obj.changePassword("hello boi" , "hello boi my name is harsh"))
 
+    print(obj.setPassword("hello boi my name is harsh"))
 
-
-
-    # TODO: testing password
-
-    # print(obj.setPassword("hello boi"))
+    print("\n\n")
+    obj.printData()
 
 
         
@@ -770,5 +842,5 @@ if __name__ == "__main__":
 # make the db delete fucntion as well 
 # if to commit or not
 # del col function using copying the data from table -> del table -> create new table 
-# table name , col name = "'" + "'"
 # raise exception or not if wrong data type is passed  
+# None error
