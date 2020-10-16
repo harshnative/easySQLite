@@ -171,10 +171,7 @@ class SQLiteConnect:
                 pass
             
 
-        
-    
-    # function to insert data into table
-    def insertIntoTable(self, valuesList , keyPass = None , tableName = None):
+    def getOperableTableName(self , tableName):
 
         # checking the module as some stored table name or not
         if(tableName == None):
@@ -185,6 +182,18 @@ class SQLiteConnect:
 
         if(self.security):
             tableName = tableName + " " + self.tableNameAdd
+
+
+        return tableName
+
+
+
+        
+    
+    # function to insert data into table
+    def insertIntoTable(self, valuesList , keyPass = None , tableName = None):
+
+        tableName = self.getOperableTableName(tableName)
 
         # getting the key value if not passed
         if(keyPass == None):
@@ -242,7 +251,6 @@ class SQLiteConnect:
 
         string = string[:-1] + " )"
 
-
         self.connObj.execute(string)
         self.connObj.commit()
 
@@ -250,15 +258,7 @@ class SQLiteConnect:
     # function to return the last ID
     def returnLastKey(self , tableName = None):
 
-        # checking if their is stored table in module or not 
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
 
         # generating query string
         string = "SELECT "
@@ -287,15 +287,7 @@ class SQLiteConnect:
     # print data of a particular key
     def printDataOfKey(self, key , errorMessage = "key could not be found" , tableName = None):
 
-        # checking whether their is stored table name is module
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
 
         # column list in the table
         colList = []
@@ -356,15 +348,7 @@ class SQLiteConnect:
     # print entire data in a table
     def printData(self , errorMessage = "No data in table" , tableName = None):
 
-        # checking if their is stored table name is module 
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
 
         # column list in the table
         colList = []
@@ -430,15 +414,7 @@ class SQLiteConnect:
     # returns none if not found
     def returnDataOfKey(self, key , tableName = None):
 
-        # checking whether their is stored table name is module
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
 
         # column list in the table
         colList = []
@@ -497,15 +473,7 @@ class SQLiteConnect:
     # i[1] of this list is the list of col names 
     def returnData(self , tableName = None):
 
-        # checking if their is stored table name is module 
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
 
         # column list in the table
         colList = []
@@ -564,15 +532,7 @@ class SQLiteConnect:
     # return False else wise
     def updateRow(self , colName , value , key , tableName = None):
 
-        # checking for stored table name
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
 
         # query string
         string = "UPDATE " + "'" + tableName + "'" + " set " + str(colName) + " = "
@@ -612,17 +572,9 @@ class SQLiteConnect:
     # function for deleting a row
     def deleteRow(self, key , updateId = False , tableName = None):
 
-        # checking for stored table name
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-
         tempTableName = tableName
 
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
 
         # query
         string = "DELETE from " + "'" + tableName + "'" + " where ID = " + str(key) + ";"
@@ -637,17 +589,9 @@ class SQLiteConnect:
     # updated id's function
     def updateIDs(self , tableName = None):
 
-        # checking for stored table name
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-
         tempTableName = tableName
 
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
 
         # getting col list 
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
@@ -677,17 +621,9 @@ class SQLiteConnect:
     # function to upadte the entire row corresponding to a key
     def updateEntireRow(self , valuesList , key , tableName = None):
 
-        # checking for stored table name 
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-        
         tempTableName = tableName
 
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
 
         key = int(key)
 
@@ -704,15 +640,7 @@ class SQLiteConnect:
 
     def delEntireTable(self , tableName = None):
 
-        # checking for stored table name 
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-        
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
     
         string = "DROP TABLE " + "'" + tableName + "'"
 
@@ -720,17 +648,10 @@ class SQLiteConnect:
         self.connObj.commit()
 
     
+    # function to add a col to data base
     def addColToTable(self , colName , dataType = "TEXT" , NULL = False , tableName = None):
 
-        # checking for stored table name 
-        if(tableName == None):
-            if(self.tableName == None):
-                raise Exception("either pass a table name or create that table using createTable function")
-            else:
-                tableName = self.tableName
-        
-        if(self.security):
-            tableName = tableName + " " + self.tableNameAdd
+        tableName = self.getOperableTableName(tableName)
 
         string = "alter table " + "'" + tableName + "'" + " add column " + "'" + colName + "'" + "    " + dataType + "    " +  "'" + str(int(NULL)) + "'"
         self.connObj.execute(string)
@@ -846,3 +767,6 @@ if __name__ == "__main__":
 
 # make the db delete fucntion as well 
 # if to commit or not
+# del col function using copying the data from table -> del table -> create new table 
+# table name , col name = "'" + "'"
+# raise exception or not if wrong data type is passed  
