@@ -142,7 +142,7 @@ class SQLiteConnect:
         # adding rest of the content list
         for i in contentList:
             
-            string = string + str(i[0]) + "    "
+            string = string + "'" + str(i[0]) + "'" + "    "
 
             if(i[1] == "INT"):
                 string = string + "INT" + "    "
@@ -227,7 +227,7 @@ class SQLiteConnect:
         
         # adding cols to query
         for i in  colList:
-            string = string + i + ","
+            string = string + "'" + i + "'" + ","
 
         string = string[:-1] + " ) VALUES (" + str(key) + ","
 
@@ -260,22 +260,22 @@ class SQLiteConnect:
 
         tableName = self.getOperableTableName(tableName)
 
-        # generating query string
-        string = "SELECT "
+        # # generating query string
+        # string = "SELECT "
 
         # getting the col names list
         cursor = self.connObj.execute('select * from ' + "'" + tableName + "'")
-        colList = list(map(lambda x: x[0], cursor.description))
+        # colList = list(map(lambda x: x[0], cursor.description))
 
         id = None
 
-        # adding cols to query
-        for i in colList:
-            string = string + i + ","
+        # # adding cols to query
+        # for i in colList:
+        #     string = string + i + ","
         
-        string = string[:-1] + " from " + "'" + tableName + "'"
+        # string = string[:-1] + " from " + "'" + tableName + "'"
 
-        cursor = self.connObj.execute(string)
+        # cursor = self.connObj.execute(string)
 
         # prasing the table and finding last key
         for row in cursor:
@@ -535,7 +535,7 @@ class SQLiteConnect:
         tableName = self.getOperableTableName(tableName)
 
         # query string
-        string = "UPDATE " + "'" + tableName + "'" + " set " + str(colName) + " = "
+        string = "UPDATE " + "'" + tableName + "'" + " set " + "'" + str(colName) + "'" + " = "
 
         # gettign table info 
         cor = self.connObj.execute("PRAGMA table_info(" + "'" + tableName + "'" + ")")
@@ -601,7 +601,7 @@ class SQLiteConnect:
         string = "SELECT "
 
         for i in colList:
-            string = string + i + ","
+            string = string + "'" + i + "'" + ","
         
         string = string[:-1] + " from " + "'" + tableName + "'"
 
@@ -610,7 +610,9 @@ class SQLiteConnect:
         count = 0
 
         for row in cursor:
-            if(int(row[0]) == count):
+            if(row[0] == "ID"):
+                pass
+            elif(int(row[0]) == count):
                 pass
             else:
                 self.updateRow("ID" , count , row[0] , tempTableName)
@@ -671,7 +673,7 @@ if __name__ == "__main__":
 
     obj.setSecurityStatus(True)
 
-    contentList = [["test1" , "TEXT" , 1] , ["test2" , "TEXT" , 1] , ["test3" , "INT" , 1]]
+    contentList = [["test1 456" , "TEXT" , 1] , ["test2  456" , "TEXT" , 1] , ["test3    456" , "INT" , 1]]
 
     obj.createTable("testTable" , contentList)
 
@@ -697,7 +699,7 @@ if __name__ == "__main__":
 
     obj.printData()
 
-    obj.updateRow("test1" , "hello69" , 3)
+    obj.updateRow("test1 456" , "hello69" , 3)
 
     print("\n\n")
     obj.printData()
