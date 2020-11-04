@@ -1,5 +1,5 @@
 # import easySQLite.SED as SED
-import SED
+from . import SED
 import sqlite3 as sq
 from tabulate import tabulate
 
@@ -363,7 +363,8 @@ class SQLiteConnect:
                     count += 1
                 found = True
         
-            table.append(tempTable)
+            if(len(tempTable) > 0):
+                table.append(tempTable) 
 
         if(found):
             print(tabulate(table, headers=colList))
@@ -503,8 +504,10 @@ class SQLiteConnect:
                     else:    
                         tempTable.append(row[count])
                     count += 1
-        
-            table.append(tempTable)
+
+            
+            if(len(tempTable) > 0):
+                table.append(tempTable) 
 
         if(len(table) > 0):
             return table
@@ -643,7 +646,7 @@ class SQLiteConnect:
             self.connObj.commit()
 
         if(updateId):
-            self.updateIDs(tempTableName)
+            self.updateIDs(tempTableName , commit=commit)
 
     
     # updated id's function
@@ -678,6 +681,9 @@ class SQLiteConnect:
                 self.updateRow("ID" , count , row[0] , tempTableName , commit)
             
             count = count + 1
+
+        if(commit):
+            self.connObj.commit()
 
 
     # function to upadte the entire row corresponding to a key
@@ -819,6 +825,16 @@ class SQLiteConnect:
         self.security = tempSecurity
         self.tableName = tempTableName
 
+    
+    def checkForPasswordTable(self):
+        tableNames = self.connObj.execute("SELECT name FROM sqlite_master WHERE type='table';")
+
+        for i in tableNames:
+            if(i[0] == (self.passwordStorerTable + " " + self.tableNameAdd)):
+                return True
+        
+        return False
+
 
 
 
@@ -832,6 +848,8 @@ if __name__ == "__main__":
     obj = SQLiteConnect()
 
     obj.setDatabase("test.db")
+
+    print(obj.checkForPasswordTable())
 
     print(obj.setPassword("hello boi"))
 
@@ -900,34 +918,12 @@ if __name__ == "__main__":
 
     print(obj.changePassword("hello boi" , "hello boi my name is harsh"))
 
+    print("isTable = " , obj.checkForPasswordTable())
     print(obj.setPassword("hello boi my name is harsh"))
+    print("isTable = " , obj.checkForPasswordTable())
 
     print("\n\n")
     obj.printData()
-
-
-        
-
-
-
-            
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # make the db delete fucntion as well 
