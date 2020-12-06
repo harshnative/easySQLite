@@ -1,5 +1,5 @@
 # import easySQLite.SED as SED
-from . import SED
+import SED
 import sqlite3 as sq
 from tabulate import tabulate
 
@@ -132,6 +132,8 @@ class SQLiteConnect:
     # function to get the database name
     def getDatabase(self):
         return self.dataBaseName
+
+    #TODO: return the name + path
         
 
     # function to create the table
@@ -631,7 +633,7 @@ class SQLiteConnect:
 
 
     # function for deleting a row
-    def deleteRow(self, key , updateId = False , tableName = None , commit = True):
+    def deleteRow(self, key , updateId = True , tableName = None , commit = True):
 
         tempTableName = tableName
 
@@ -825,6 +827,8 @@ class SQLiteConnect:
         self.security = tempSecurity
         self.tableName = tempTableName
 
+        return True
+
     
     def checkForPasswordTable(self):
         tableNames = self.connObj.execute("SELECT name FROM sqlite_master WHERE type='table';")
@@ -839,7 +843,7 @@ class SQLiteConnect:
 
 
 
-
+#TODO: method for checking the data base exist or not
 
 
 # for testing purpose
@@ -886,7 +890,7 @@ if __name__ == "__main__":
     print("\n\n")
     obj.printData()
 
-    obj.deleteRow(2)
+    obj.deleteRow(2 , False)
 
     print("\n\n")
     obj.printData()
