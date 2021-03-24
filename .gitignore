@@ -1,3 +1,13 @@
 tests/
 
 test.db
+
+build/
+
+dist/
+
+easySQLiteV2.egg-info/
+
+.vscode/
+
+myvirtual/

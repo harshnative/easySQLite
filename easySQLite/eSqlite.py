@@ -1,4 +1,4 @@
-# import easySQLite.SED as SED
+# from . import SED
 import SED
 import sqlite3 as sq
 from tabulate import tabulate
